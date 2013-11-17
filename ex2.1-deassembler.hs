@@ -6,9 +6,8 @@ import qualified Text.Parsec.ByteString as PBS
 -- import Data.Word
 import qualified Data.ByteString.Char8 as BS
 import System.Environment
-import Control.Applicative ((<$>), (<*>), (*>))
+import Control.Applicative ((<$>), (*>))
 import Data.Char (ord)
-import Control.Monad (replicateM)
 
 data Inst =
   MovAx Int | Interruption Int | SysWrite | SysExit | Arg Int
@@ -19,7 +18,7 @@ main = do
   args <- getArgs
   let fileName = head args
   bs <- BS.readFile $ fileName
-  mapM_ putStrLn $ map showInst $ lexInsts bs
+  mapM_ putStrLn $ map showInst $ lexInsts fileName bs
 
 lexInsts :: SourceName -> BS.ByteString -> [Inst]
 lexInsts sn = leftError . parse parseInsts sn
@@ -40,7 +39,7 @@ showInst SysExit          = "; sys exit\n"
 showInst (Arg _)          = "; arg"
 
 movAx :: PBS.Parser Inst
-movAx = char '\xb8' *> MovAx <$> beWord
+movAx = char '\xb8' *> ( MovAx <$> beWord )
 
 interruption :: PBS.Parser Inst
 interruption = char '\xcd' *> ( Interruption <$> byte )
