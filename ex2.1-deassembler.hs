@@ -18,7 +18,7 @@ main = do
   args <- getArgs
   let fileName = head args
   bs <- BS.readFile $ fileName
-  mapM_ putStrLn $ map showInst $ lexInsts fileName bs
+  mapM_ putStrLn $ map showInst $ lexInsts fileName ( BS.drop 16 bs )
 
 lexInsts :: SourceName -> BS.ByteString -> [Inst]
 lexInsts sn = leftError . parse parseInsts sn
