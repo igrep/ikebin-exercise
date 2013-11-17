@@ -32,10 +32,10 @@ parseInsts = many1 $
   <|> arg
 
 showInst :: Inst -> String
-showInst (MovAx i)        = "mov ax, " ++ show i ++ "\n"
-showInst (Interruption i) = "int " ++ show i ++ "\n"
-showInst SysWrite         = "; sys write\n"
-showInst SysExit          = "; sys exit\n"
+showInst (MovAx i)        = "mov ax, " ++ show i
+showInst (Interruption i) = "int " ++ show i
+showInst SysWrite         = "; sys write"
+showInst SysExit          = "; sys exit"
 showInst (Arg _)          = "; arg"
 
 movAx :: PBS.Parser Inst
