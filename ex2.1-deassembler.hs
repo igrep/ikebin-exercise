@@ -55,8 +55,8 @@ arg = Arg <$> beWord
 
 beWord :: PBS.Parser Int
 beWord = do
-  ho <- byte
   lo <- byte
+  ho <- byte
   return $ ho * 256 + lo
 
 byte :: PBS.Parser Int
