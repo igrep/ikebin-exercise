@@ -1,16 +1,13 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-import Text.Parsec
-import qualified Text.Parsec.ByteString as PBS
--- TODO: CharからWord16に変換する方法がわからないのでひとまずIntで代用。
--- import Data.Word
-import qualified Data.ByteString.Char8 as BS
+import Data.Attoparsec.ByteString
+import Data.Word
+import qualified Data.ByteString as BS
 import System.Environment
-import Control.Applicative ((<$>), (*>))
-import Data.Char (ord)
+import Control.Applicative ((<$>), (*>), (<|>))
 
 data Inst =
-  MovAx Int | Interruption Int | SysWrite | SysExit | Arg Int
+  MovAx Word8 | Interruption Word8 | SysWrite | SysExit | Arg Word8
   deriving (Show, Read)
 
 main :: IO ()
@@ -18,12 +15,12 @@ main = do
   args <- getArgs
   let fileName = head args
   bs <- BS.readFile $ fileName
-  mapM_ putStrLn $ map showInst $ lexInsts fileName ( BS.drop 16 bs )
+  mapM_ putStrLn $ map showInst $ lexInsts ( BS.drop 16 bs )
 
-lexInsts :: SourceName -> BS.ByteString -> [Inst]
-lexInsts sn = leftError . parse parseInsts sn
+lexInsts :: BS.ByteString -> [Inst]
+lexInsts = leftError . parseOnly parseInsts
 
-parseInsts :: PBS.Parser [Inst]
+parseInsts :: Parser [Inst]
 parseInsts = many1 $
       movAx
   <|> interruption
@@ -38,29 +35,26 @@ showInst SysWrite         = "; sys write"
 showInst SysExit          = "; sys exit"
 showInst (Arg _)          = "; arg"
 
-movAx :: PBS.Parser Inst
-movAx = char '\xb8' *> ( MovAx <$> beWord )
+movAx :: Parser Inst
+movAx = word8 0xb8 *> ( MovAx <$> beWord )
 
-interruption :: PBS.Parser Inst
-interruption = char '\xcd' *> ( Interruption <$> byte )
+interruption :: Parser Inst
+interruption = word8 0xcd *> ( Interruption <$> anyWord8 )
 
-sysWrite :: PBS.Parser Inst
-sysWrite = char '\x04' *> return SysWrite
+sysWrite :: Parser Inst
+sysWrite = word8 0x04 *> return SysWrite
 
-sysExit :: PBS.Parser Inst
-sysExit = char '\x04' *> return SysExit
+sysExit :: Parser Inst
+sysExit = word8 0x04 *> return SysExit
 
-arg :: PBS.Parser Inst
+arg :: Parser Inst
 arg = Arg <$> beWord
 
-beWord :: PBS.Parser Int
+beWord :: Parser Word8
 beWord = do
-  lo <- byte
-  ho <- byte
+  lo <- anyWord8
+  ho <- anyWord8
   return $ ho * 256 + lo
-
-byte :: PBS.Parser Int
-byte = ord <$> anyChar
 
 leftError :: (Show a) => Either a b -> b
 leftError = either ( error . show ) id
