@@ -4,6 +4,7 @@ import Data.Attoparsec.ByteString
   ( word8
   , anyWord8
   , parseOnly
+  , many1
   , Parser )
 
 import qualified Data.Attoparsec.ByteString as ABS
@@ -13,9 +14,6 @@ import Data.Bits
 import qualified Data.ByteString as BS
 import System.Environment
 import Control.Applicative ((<$>), (*>), (<|>))
-import Control.Monad
-
-data Program = Program Header [Inst]
 
 data Header = Header
   { textSize :: Word16
@@ -30,14 +28,8 @@ main = do
   args <- getArgs
   let fileName = head args
   bs <- BS.readFile $ fileName
-  let (Program _ is) = leftError $ parseOnly program bs
-  mapM_ putStrLn $ map showInst $ is
-
-program :: Parser Program
-program = do
-  h <- header
-  is <- insts $ textSize h
-  return $ Program h is
+  let ts = fromIntegral $ textSize $ leftError $ parseOnly header bs
+  mapM_ putStrLn $ map showInst $ leftError $ parseOnly insts $ BS.take ts $ BS.drop 16 bs
 
 header :: Parser Header
 header = do
@@ -47,8 +39,8 @@ header = do
   _ <- ABS.take 10
   return $ Header t d
 
-insts :: Word16 -> Parser [Inst]
-insts tSize = replicateM (fromIntegral tSize) $
+insts :: Parser [Inst]
+insts = many1 $
       movAx
   <|> interruption
   <|> sysWrite
