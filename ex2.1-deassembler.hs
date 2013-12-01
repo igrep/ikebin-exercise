@@ -32,7 +32,7 @@ main = do
   bs <- BS.readFile $ fileName
   let (h, leftBs) = leftError $ splitHeader bs
   let ts = fromIntegral $ textSize h
-  mapM_ putStrLn $ map showInst $ leftError $ parseOnly insts $ BS.take ts leftBs
+  mapM_ putStrLn $ map showInst $ leftError $ lexInsts $ BS.take ts leftBs
 
 header :: Parser Header
 header = do
@@ -48,8 +48,8 @@ splitHeader bs = handle $ parse header bs
     handle (Done leftBs h) = Right (h, leftBs)
     handle _ = Left "Bad Header!"
 
-insts :: Parser [Inst]
-insts = many1 $
+lexInsts :: BS.ByteString -> Either String [Inst]
+lexInsts = parseOnly $ many1 $
       movAx
   <|> interruption
   <|> sysWrite
