@@ -17,7 +17,7 @@ import Control.Applicative ((<$>), (*>), (<|>))
 
 data Header = Header
   { textSize :: Word16
-  , dataSize :: Word16 }
+  , _dataSize :: Word16 }
 
 data Inst =
   MovAx Word16 | Interruption Word8 | SysWrite | SysExit | Arg Word16
@@ -79,7 +79,7 @@ beWord16 = do
 leftError :: (Show a) => Either a b -> b
 leftError = either ( error . show ) id
 
-showBits :: Bits a => a -> String
-showBits bits = reverse $ take (bitSize bits) $ map f [0..]
+_showBits :: Bits a => a -> String
+_showBits bits = reverse $ take (bitSize bits) $ map f [0..]
   where
     f n = if testBit bits n then '1' else '0'
