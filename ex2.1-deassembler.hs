@@ -5,7 +5,9 @@ import Data.Attoparsec.ByteString
   , anyWord8
   , parseOnly
   , many1
-  , Parser )
+  , parse
+  , Parser
+  , IResult(..) )
 
 import qualified Data.Attoparsec.ByteString as ABS
 
@@ -28,8 +30,9 @@ main = do
   args <- getArgs
   let fileName = head args
   bs <- BS.readFile $ fileName
-  let ts = fromIntegral $ textSize $ leftError $ parseOnly header bs
-  mapM_ putStrLn $ map showInst $ leftError $ parseOnly insts $ BS.take ts $ BS.drop 16 bs
+  let (h, leftBs) = leftError $ splitHeader bs
+  let ts = fromIntegral $ textSize h
+  mapM_ putStrLn $ map showInst $ leftError $ parseOnly insts $ BS.take ts leftBs
 
 header :: Parser Header
 header = do
@@ -38,6 +41,12 @@ header = do
   d <- beWord16
   _ <- ABS.take 10
   return $ Header t d
+
+splitHeader :: BS.ByteString -> Either String (Header, BS.ByteString)
+splitHeader bs = handle $ parse header bs
+  where
+    handle (Done leftBs h) = Right (h, leftBs)
+    handle _ = Left "Bad Header!"
 
 insts :: Parser [Inst]
 insts = many1 $
