@@ -1,13 +1,15 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-import Data.Attoparsec.ByteString
+import Data.Attoparsec.ByteString (word8, anyWord8, parseOnly, many1, Parser)
+
 import Data.Word
+import Data.Bits
 import qualified Data.ByteString as BS
 import System.Environment
 import Control.Applicative ((<$>), (*>), (<|>))
 
 data Inst =
-  MovAx Word8 | Interruption Word8 | SysWrite | SysExit | Arg Word8
+  MovAx Word16 | Interruption Word8 | SysWrite | SysExit | Arg Word16
   deriving (Show, Read)
 
 main :: IO ()
@@ -36,7 +38,7 @@ showInst SysExit          = "; sys exit"
 showInst (Arg _)          = "; arg"
 
 movAx :: Parser Inst
-movAx = word8 0xb8 *> ( MovAx <$> beWord )
+movAx = word8 0xb8 *> ( MovAx <$> beWord16 )
 
 interruption :: Parser Inst
 interruption = word8 0xcd *> ( Interruption <$> anyWord8 )
@@ -48,13 +50,14 @@ sysExit :: Parser Inst
 sysExit = word8 0x04 *> return SysExit
 
 arg :: Parser Inst
-arg = Arg <$> beWord
+arg = Arg <$> beWord16
 
-beWord :: Parser Word8
-beWord = do
+-- Big Endian Word16
+beWord16 :: Parser Word16
+beWord16 = do
   lo <- anyWord8
   ho <- anyWord8
-  return $ ho * 256 + lo
+  return $ shift (fromIntegral ho) 8 .|. (fromIntegral lo)
 
 leftError :: (Show a) => Either a b -> b
 leftError = either ( error . show ) id
