@@ -72,7 +72,7 @@ sysWrite :: Parser Inst
 sysWrite = word8 0x04 *> return SysWrite
 
 sysExit :: Parser Inst
-sysExit = word8 0x04 *> return SysExit
+sysExit = word8 0x01 *> return SysExit
 
 arg :: Parser Inst
 arg = Arg <$> beWord16
