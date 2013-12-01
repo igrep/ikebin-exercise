@@ -1,12 +1,25 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-import Data.Attoparsec.ByteString (word8, anyWord8, parseOnly, many1, Parser)
+import Data.Attoparsec.ByteString
+  ( word8
+  , anyWord8
+  , parseOnly
+  , Parser )
+
+import qualified Data.Attoparsec.ByteString as ABS
 
 import Data.Word
 import Data.Bits
 import qualified Data.ByteString as BS
 import System.Environment
 import Control.Applicative ((<$>), (*>), (<|>))
+import Control.Monad
+
+data Program = Program Header [Inst]
+
+data Header = Header
+  { textSize :: Word16
+  , dataSize :: Word16 }
 
 data Inst =
   MovAx Word16 | Interruption Word8 | SysWrite | SysExit | Arg Word16
@@ -17,13 +30,25 @@ main = do
   args <- getArgs
   let fileName = head args
   bs <- BS.readFile $ fileName
-  mapM_ putStrLn $ map showInst $ lexInsts ( BS.drop 16 bs )
+  let (Program _ is) = leftError $ parseOnly program bs
+  mapM_ putStrLn $ map showInst $ is
 
-lexInsts :: BS.ByteString -> [Inst]
-lexInsts = leftError . parseOnly parseInsts
+program :: Parser Program
+program = do
+  h <- header
+  is <- insts $ textSize h
+  return $ Program h is
 
-parseInsts :: Parser [Inst]
-parseInsts = many1 $
+header :: Parser Header
+header = do
+  _ <- ABS.take 2
+  t <- beWord16
+  d <- beWord16
+  _ <- ABS.take 10
+  return $ Header t d
+
+insts :: Word16 -> Parser [Inst]
+insts tSize = replicateM (fromIntegral tSize) $
       movAx
   <|> interruption
   <|> sysWrite
